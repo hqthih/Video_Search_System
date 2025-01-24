@@ -7,6 +7,7 @@ import json
 import glob
 import faiss
 import numpy as np
+from pymilvus import Collection,connections
 from utils.nlp_processing import Translation
 from utils.combine_utils import merge_searching_results_by_addition
 from utils.ocr_retrieval_engine.ocr_retrieval import ocr_retrieval
@@ -14,9 +15,13 @@ from utils.semantic_embed.speech_retrieval import speech_retrieval
 from utils.object_retrieval_engine.object_retrieval import object_retrieval
 
 class MyFaiss:
-    def __init__(self, bin_clip_file: str, bin_clipv2_file: str, json_path: str, audio_json_path:str, img2audio_json_path:str):    
-        self.index_clip = self.load_bin_file(bin_clip_file)
-        self.index_clipv2 = self.load_bin_file(bin_clipv2_file)
+    # def __init__(self, bin_clip_file: str, bin_clipv2_file: str, json_path: str, audio_json_path:str, img2audio_json_path:str):    
+
+    def __init__(self, json_path: str, audio_json_path:str, img2audio_json_path:str):    
+        # self.index_clip = self.load_bin_file(bin_clip_file)
+        # self.index_clipv2 = self.load_bin_file(bin_clipv2_file)
+        self.index_clip = None
+        self.index_clipv2 = None
         self.object_retrieval = object_retrieval()
         self.ocr_retrieval = ocr_retrieval()
         self.asr_retrieval = speech_retrieval()
@@ -29,6 +34,13 @@ class MyFaiss:
         self.clip_model, _ = clip.load("ViT-B/16", device=self.__device)
         self.clipv2_model, _, _ = open_clip.create_model_and_transforms('ViT-L-14', device=self.__device, pretrained='datacomp_xl_s13b_b90k')
         self.clipv2_tokenizer = open_clip.get_tokenizer('ViT-L-14')
+        connections.connect("default", host="localhost", port="19530")
+        # Drop the existing collection
+        self.collection_name = "clipv2"
+        # Create a collection
+        self.collection = Collection(self.collection_name)
+        # Load the collection into memory
+        self.collection.load()
 
     def load_json_file(self, json_path: str):
       with open(json_path, 'r') as f: 
@@ -53,9 +65,19 @@ class MyFaiss:
                 - image_paths (list): A list of file paths to the top-k images.
         """
 
-        query_feats = self.index_clip.reconstruct(id_query).reshape(1,-1)
+        query_feats = self.collection.query(
+            expr=f"id == {id_query}",
+            output_fields=["vector"]
+        )[0]["vector"]
+        query_feats = np.array(query_feats).reshape(1, -1).astype(np.float32)
 
-        scores, idx_image = self.index_clip.search(query_feats, k=k)
+        # scores, idx_image = self.index_clip.search(query_feats, k=k)
+        search_params = {"metric_type": "COSINE", "params": {"nprobe": 10}}
+        results = self.collection.search(query_feats, "vector", search_params, limit=k)
+        # import pdb; pdb.set_trace()
+        scores = np.array([hit.distance for result in results for hit in result])
+        idx_image = np.array([hit.id for result in results for hit in result])
+
         idx_image = idx_image.flatten()
 
         infos_query = list(map(self.id2img_fps.get, list(idx_image)))
@@ -97,13 +119,28 @@ class MyFaiss:
             index_choosed = self.index_clip
         else:
             index_choosed = self.index_clipv2
-        
+        # import pdb; pdb.set_trace()
         if index is None:
-          scores, idx_image = index_choosed.search(text_features, k=k)
+            print("Milvus nè")
+            #   scores, idx_image = index_choosed.search(text_features, k=k)
+            search_params = {"metric_type": "COSINE", "params": {"nprobe": 10}}
+            results = self.collection.search(text_features, "vector", search_params, limit=k)
+            # import pdb; pdb.set_trace()
+            scores = np.array([hit.distance for result in results for hit in result])
+            idx_image = np.array([hit.id for result in results for hit in result])
         else:
-          id_selector = faiss.IDSelectorArray(index)
-          scores, idx_image = index_choosed.search(text_features, k=k, 
-                                                   params=faiss.SearchParametersIVF(sel=id_selector))
+            #   scores, idx_image = index_choosed.search(text_features, k=k)
+            search_params = {"metric_type": "COSINE", "params": {"nprobe": 10}}
+            results = self.collection.search(text_features, "vector", search_params, limit=k)
+            filtered_results = []
+            for result in results:
+                filtered_result = [hit for hit in result if hit.id in index]
+                filtered_results.append(filtered_result)
+            scores = np.array([hit.distance for result in filtered_results for hit in result])
+            idx_image = np.array([hit.id for result in filtered_results for hit in result])
+        #     id_selector = faiss.IDSelectorArray(index)
+        #     scores, idx_image = index_choosed.search(text_features, k=k, 
+        #                                             params=faiss.SearchParametersIVF(sel=id_selector))
         idx_image = idx_image.flatten()
 
         ###### GET INFOS KEYFRAMES_ID ######
@@ -242,25 +279,35 @@ def main():
 
   ##### TESTING #####
   bin_file='dict/faiss_cosine.bin'
-  json_path = 'dict/keyframes_id.json'
+  # json_path = 'dict/keyframes_id.json'
+  json_path = 'dict/id2img_fps.json'
+  audio_json_path = 'dict/audio_id2img_id.json'
+  scene_path = 'dict/scene_id2info.json'
+  bin_clip_file ='dict/faiss_clip_cosine.bin'
+  bin_clipv2_file ='dict/faiss_clipv2_cosine.bin'
+  video_division_path = 'dict/video_division_tag.json'
+  img2audio_json_path = 'dict/img_id2audio_id.json'
 
-  cosine_faiss = MyFaiss('data/TransNetDatabase/KeyFrames' , bin_file, json_path)
+  # cosine_faiss = MyFaiss(bin_file, bin_file, json_path)
+  cosine_faiss = MyFaiss(bin_clip_file, bin_clipv2_file, json_path, audio_json_path, img2audio_json_path)
 
-  ##### IMAGE SEARCH #####
-  i_scores, _, infos_query, i_image_paths = cosine_faiss.image_search(id_query=0, k=9)
-  # cosine_faiss.write_csv(infos_query, des_path='/content/submit.csv')
-  cosine_faiss.show_images(i_image_paths)
+#   ##### IMAGE SEARCH #####
+#   i_scores, _, infos_query, i_image_paths = cosine_faiss.image_search(id_query=0, k=9)
+#   # cosine_faiss.write_csv(infos_query, des_path='/content/submit.csv')
+#   cosine_faiss.show_images(i_image_paths)
 
   ##### TEXT SEARCH #####
-  text = 'Người nghệ nhân đang tô màu cho chiếc mặt nạ một cách tỉ mỉ. \
-        Xung quanh ông là rất nhiều những chiếc mặt nạ. \
-        Người nghệ nhân đi đôi dép tổ ong rất giản dị. \
-        Sau đó là hình ảnh quay cận những chiếc mặt nạ. \
-        Loại mặt nạ này được gọi là mặt nạ giấy bồi Trung thu.'
+  # text = 'Người nghệ nhân đang tô màu cho chiếc mặt nạ một cách tỉ mỉ. \
+  #       Xung quanh ông là rất nhiều những chiếc mặt nạ. \
+  #       Người nghệ nhân đi đôi dép tổ ong rất giản dị. \
+  #       Sau đó là hình ảnh quay cận những chiếc mặt nạ. \
+  #       Loại mặt nạ này được gọi là mặt nạ giấy bồi Trung thu.'
+  text = '60'
 
-  scores, _, infos_query, image_paths = cosine_faiss.text_search(text, k=9)
+  scores, _, infos_query, image_paths = cosine_faiss.text_search(text, k=9, index=None, model_type='clipv2')
   # cosine_faiss.write_csv(infos_query, des_path='/content/submit.csv')
-  cosine_faiss.show_images(image_paths)
+  # cosine_faiss.show_images(image_paths)
+  print(image_paths)
 
 if __name__ == "__main__":
     main()

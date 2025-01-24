@@ -14,9 +14,13 @@ from utils.semantic_embed.speech_retrieval import speech_retrieval
 from utils.object_retrieval_engine.object_retrieval import object_retrieval
 
 class MyFaiss:
-    def __init__(self, bin_clip_file: str, bin_clipv2_file: str, json_path: str, audio_json_path:str, img2audio_json_path:str):    
-        self.index_clip = self.load_bin_file(bin_clip_file)
-        self.index_clipv2 = self.load_bin_file(bin_clipv2_file)
+    # def __init__(self, bin_clip_file: str, bin_clipv2_file: str, json_path: str, audio_json_path:str, img2audio_json_path:str):    
+
+    def __init__(self, json_path: str, audio_json_path:str, img2audio_json_path:str):    
+        # self.index_clip = self.load_bin_file(bin_clip_file)
+        # self.index_clipv2 = self.load_bin_file(bin_clipv2_file)
+        self.index_clip = None
+        self.index_clipv2 = None
         self.object_retrieval = object_retrieval()
         self.ocr_retrieval = ocr_retrieval()
         self.asr_retrieval = speech_retrieval()

@@ -6,7 +6,7 @@ import numpy as np
 from flask_cors import CORS
 from flask import Flask, request, jsonify
 from utils.parse_frontend import parse_data
-from utils.faiss_processing import MyFaiss
+from utils.faiss_processing_milvus import MyFaiss
 from utils.context_encoding import VisualEncoding
 from utils.semantic_embed.tag_retrieval import tag_retrieval
 from utils.combine_utils import merge_searching_results_by_addition
@@ -15,13 +15,15 @@ from utils.search_utils import group_result_by_video, search_by_filter
 json_path = 'dict/id2img_fps.json'
 audio_json_path = 'dict/audio_id2img_id.json'
 scene_path = 'dict/scene_id2info.json'
-bin_clip_file ='dict/faiss_clip_cosine.bin'
-bin_clipv2_file ='dict/faiss_clipv2_cosine.bin'
+# bin_clip_file ='dict/faiss_clip_cosine.bin'
+# bin_clipv2_file ='dict/faiss_clipv2_cosine.bin'
 video_division_path = 'dict/video_division_tag.json'
 img2audio_json_path = 'dict/img_id2audio_id.json'
 
 VisualEncoder = VisualEncoding()
-CosineFaiss = MyFaiss(bin_clip_file, bin_clipv2_file, json_path, audio_json_path, img2audio_json_path)
+CosineFaiss = MyFaiss(json_path, audio_json_path, img2audio_json_path)
+# CosineFaiss = MyFaiss(bin_clip_file, bin_clipv2_file, json_path, audio_json_path, img2audio_json_path)
+
 TagRecommendation = tag_retrieval()
 DictImagePath = CosineFaiss.id2img_fps
 TotalIndexList = np.array(list(range(len(DictImagePath)))).astype('int64')

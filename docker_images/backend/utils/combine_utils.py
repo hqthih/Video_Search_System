@@ -27,6 +27,17 @@ def merge_searching_results(list_scores, list_indices, list_image_paths):
     return normalized_list_scores[unique_indices], list_indices_refined[unique_indices], list_image_paths_refined[unique_indices]
 
 def merge_searching_results_by_addition(list_scores, list_indices):
+    """
+    Merges multiple search result scores and their corresponding indices by summing the normalized scores.
+    Args:
+      list_scores (List[np.array]): A list of numpy arrays containing the scores from different searches.
+      list_indices (List[np.array]): A list of numpy arrays containing the indices corresponding to the scores.
+    Returns:
+      Tuple[np.array, np.array]: A tuple containing two numpy arrays:
+        - The merged and sorted scores.
+        - The indices corresponding to the merged scores, sorted in the same order.
+    """
+    
     '''
     Arg:
       list_scores: List[np.array]
