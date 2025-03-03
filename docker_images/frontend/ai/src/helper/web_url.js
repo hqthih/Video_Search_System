@@ -1,7 +1,7 @@
 //BACKEND
 export const web_url = 
 // "https://1e0e-35-229-64-73.ngrok-free.app";
-"http://localhost:8080";
+"http://127.0.0.1:8080";
 
 //SOCKET | DB SERVER
 export const socket_url =

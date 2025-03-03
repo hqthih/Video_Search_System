@@ -67,7 +67,7 @@ def get_related_ignore(ignore_index):
 
 # Run Flask app
 app = Flask(__name__, template_folder='templates')
-CORS(app)
+CORS(app, resources={r"/*": {"origins": "*"}})
 
 @app.route('/data')
 def index():

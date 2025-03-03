@@ -11,7 +11,10 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the rest of the application code into the container
-COPY . .
+COPY ./utils ./utils
+COPY ./dict ./dict 
+COPY ./app.py .
+# RUN find . -name "*.bin" -delete
 
 # Expose the port the app runs on
 EXPOSE 8080
