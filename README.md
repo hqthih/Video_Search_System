@@ -23,13 +23,31 @@ Dataset structure:
    |   |   |   |   |-....
 ```
 
+### Install dependencies and environments
+```bash
+
+# For Ubuntu/Debian
+sudo apt-get update
+sudo apt-get install -y libgl1-mesa-glx libglib2.0-0
+
+```
+
+
 ### Dict
 Download dict zip file: [dict](https://drive.google.com/file/d/1pjArVhbXljkpCLpFGg71rh2yzwXGeJWi/view?usp=sharing)
+``` bash
+gdown https://drive.google.com/uc?id=1pjArVhbXljkpCLpFGg71rh2yzwXGeJWi
+```
+
 
 ### Vector embeddings
 Download bin file: 
    - [faiss_clip_cosine.bin](https://drive.google.com/file/d/1_3Z-iR5b3cT-QAfY6u1oUf9__YNju4m1/view?usp=sharing)
    - [faiss_clipv2_cosine.bin](https://drive.google.com/file/d/1CZDLrRlOK7jmvTc-p6jARR4BA6PSA61M/view?usp=sharing)
+``` bash
+gdown https://drive.google.com/uc?id=1_3Z-iR5b3cT-QAfY6u1oUf9__YNju4m1
+gdown https://drive.google.com/uc?id=1CZDLrRlOK7jmvTc-p6jARR4BA6PSA61M
+```
 
 ### Keyframes
 Download keyframes zip file and extract to folder frontend/ai/public/data.\
@@ -76,8 +94,19 @@ pip install -r requirements.txt
 Install nodejs: https://nodejs.org/en/download
 ```
 npm install
+or
+sudo apt-get install npm
+```
+Install next 
+```
+npm install next react react-dom
 ```
 
+Install dependencies
+```
+npm install @google-cloud/storage --legacy-peer-deps
+npm install date-fns
+```
 - ### DB Sever
 ```
 pip install flask
