@@ -36,7 +36,7 @@ class MyFaiss:
         self.clipv2_tokenizer = open_clip.get_tokenizer('ViT-L-14')
         connections.connect("default", host="localhost", port="19530")
         # Drop the existing collection
-        self.collection_name = "clipv2"
+        self.collection_name = "clip"
         # Create a collection
         self.collection = Collection(self.collection_name)
         # Load the collection into memory
