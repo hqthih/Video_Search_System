@@ -6,7 +6,6 @@ regex
 numpy
 pandas
 faiss-cpu
-clip
 rapidfuzz
 matplotlib
 flask-cors
@@ -18,3 +17,5 @@ transformers
 scikit-learn
 open_clip_torch
 pymilvus
+git+https://github.com/openai/CLIP.git
+eventlet

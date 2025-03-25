@@ -6,19 +6,8 @@ import scipy
 from ..semantic_extract import semantic_extract
 from ..object_retrieval_engine.object_retrieval import load_file
 from ..combine_utils import merge_searching_results_by_addition
+from utils.common import PROJECT_ROOT
 
-def GET_PROJECT_ROOT():
-    # goto the root folder of LogBar
-    current_abspath = os.path.abspath(__file__)
-    while True:
-        if os.path.split(current_abspath)[1] == 'Video-Search-System-App':
-            project_root = current_abspath
-            break
-        else:
-            current_abspath = os.path.dirname(current_abspath)
-    return project_root
-
-PROJECT_ROOT = GET_PROJECT_ROOT()
 
 class speech_retrieval(semantic_extract, load_file):
     def __init__(
