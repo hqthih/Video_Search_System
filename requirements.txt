@@ -1,6 +1,6 @@
 pyvi
 ftfy
-tqdm
+tqdm>=4.65.0
 flask
 regex
 numpy
@@ -21,3 +21,4 @@ open_clip_torch
 pymilvus==2.5.3
 gdown
 eventlet
+google-cloud-storage>=2.10.0
