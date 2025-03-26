@@ -11,12 +11,14 @@ from utils.context_encoding import VisualEncoding
 from utils.semantic_embed.tag_retrieval import tag_retrieval
 from utils.combine_utils import merge_searching_results_by_addition
 from utils.search_utils import group_result_by_video, search_by_filter
+from utils.load_metadata_from_gcp_storage import (
+    load_map_keyframes,
+    load_video_id2img_id
+)
 
 json_path = 'dict/id2img_fps.json'
 audio_json_path = 'dict/audio_id2img_id.json'
 scene_path = 'dict/scene_id2info.json'
-# bin_clip_file ='dict/faiss_clip_cosine.bin'
-# bin_clipv2_file ='dict/faiss_clipv2_cosine.bin'
 video_division_path = 'dict/video_division_tag.json'
 img2audio_json_path = 'dict/img_id2audio_id.json'
 
@@ -31,14 +33,14 @@ TotalIndexList = np.array(list(range(len(DictImagePath)))).astype('int64')
 with open(scene_path, 'r') as f:
   Sceneid2info = json.load(f)
 
-with open('dict/map_keyframes.json', 'r') as f:
-  KeyframesMapper = json.load(f)
+# Replace local file loading with GCP Storage
+KeyframesMapper  = load_map_keyframes()
+Videoid2imgid = load_video_id2img_id()
 
 with open(video_division_path, 'r') as f:
   VideoDivision = json.load(f)
 
-with open('dict/video_id2img_id.json', 'r') as f:
-  Videoid2imgid = json.load(f)
+
 
 def get_search_space(id):
   # id starting from 1 to 4
