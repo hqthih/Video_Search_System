@@ -1,7 +1,8 @@
 # Dataset extraction
 ## Pipeline
+https://app.diagrams.net/#G1gc3X5YlXckrcA6LzoNItkxWqM2Ds4bT1#%7B%22pageId%22%3A%22gfNFXgkiRMqiiLaPGVTi%22%7D
 <p align="center" width="100%">
-    <img width="25%" src="../figs/data_preprocessing.jpg"> 
+    <img width="90%" src="./png/video-extract-semantic-flow.png"> 
 </p>
 
 ## Data directory
@@ -18,6 +19,8 @@ Prepare data directory as:
 
 ```
 
+
+
 ## Usage
 - Keyframe extraction: [transnet](transnet/README.md)
 - Audio extraction: [audio](audio/README.md)
@@ -25,3 +28,4 @@ Prepare data directory as:
 - Clip features extraction:: [clip](clip/README.md)
 - Run [create.ipynb](./create.ipynb) for bin generation
 - Run [data_preparation.ipynb](./data_preparation.ipynb)
+

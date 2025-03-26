@@ -14,6 +14,13 @@ from utils.common import PROJECT_ROOT
 
 
 class semantic_extract:
+    """A class for extracting semantic information from text or images.
+
+    This class provides methods for semantic analysis and feature extraction,
+    typically used in the video search system to process and understand content
+    semantically. It can be used to extract meaningful features and representations
+    from input data for search and comparison purposes.
+    """
     def __init__(
             self,
             model = 'sentence-transformers/stsb-xlm-r-multilingual',
