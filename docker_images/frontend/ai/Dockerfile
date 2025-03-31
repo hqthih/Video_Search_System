@@ -10,11 +10,16 @@ COPY package*.json ./
 # Install dependencies
 RUN npm install
 
+# Install dependencies
+RUN npm install next react react-dom
+RUN npm install @google-cloud/storage --legacy-peer-deps
+RUN npm install date-fns
+
 # Copy the rest of the application code
 COPY . .
 
 # Build the Next.js application
-RUN npm run build
+# RUN npm run build --verbose
 
 # Expose the port the app runs on
 EXPOSE 3000

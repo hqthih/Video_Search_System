@@ -1,5 +1,24 @@
 This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
 
+## Install
+
+Install nodejs: https://nodejs.org/en/download
+```
+npm install
+or
+sudo apt-get install npm
+```
+Install next 
+```
+npm install next react react-dom
+```
+
+Install dependencies
+```
+npm install @google-cloud/storage --legacy-peer-deps
+npm install date-fns
+```
+
 ## Getting Started
 
 First, run the development server:
