@@ -1,7 +1,5 @@
 import copy
-import time
 import json
-import requests
 import numpy as np
 from flask_cors import CORS
 from flask import Flask, request, jsonify
@@ -16,7 +14,7 @@ from utils.helpers.gcp_storage_helper.gcp_storage import GCPStorageManager
 
 
 # Initialize GCP Storage Manager
-storage_manager = GCPStorageManager(bucket_name='video-search-keyframes-storage-hao')
+storage_manager = GCPStorageManager()
 # Initialize other components
 json_path = 'dict/id2img_fps.json'
 audio_json_path = 'dict/audio_id2img_id.json'
@@ -35,12 +33,10 @@ TotalIndexList = np.array(list(range(len(DictImagePath)))).astype('int64')
 
 
 # Load metadata from GCP Storage
-Sceneid2info = storage_manager.load_json_file('dict/scene_id2info.json')
-KeyframesMapper = storage_manager.load_json_file('dict/map_keyframes.json')
-Videoid2imgid = storage_manager.load_json_file('dict/video_id2img_id.json')
-
-with open(video_division_path, 'r') as f:
-  VideoDivision = json.load(f)
+Sceneid2info = storage_manager.load_json_with_cache('dict/scene_id2info.json')
+KeyframesMapper = storage_manager.load_json_with_cache('dict/map_keyframes.json')
+Videoid2imgid = storage_manager.load_json_with_cache('dict/video_id2img_id.json')
+VideoDivision = storage_manager.load_json_with_cache('dict/video_division_tag.json')
 
 
 

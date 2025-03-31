@@ -4,15 +4,19 @@ from google.cloud import storage
 from typing import Dict, Any, Optional
 
 class GCPStorageManager:
-    def __init__(self, bucket_name: str):
-        """Initialize GCP Storage Manager.
-        
-        Args:
-            bucket_name (str): Name of the GCP Storage bucket
-        """
-        self.bucket_name = bucket_name
+    _instance = None
+    
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+            cls._instance.initialize_storage()
+        return cls._instance
+    
+    def initialize_storage(self):
+        """Initialize storage with bucket name from environment variable"""
+        self.bucket_name = os.getenv('GCP_BUCKET_NAME', 'video-search-keyframes-storage-hao')
         self.client = storage.Client()
-        self.bucket = self.client.bucket(bucket_name)
+        self.bucket = self.client.bucket(self.bucket_name)
     
     def load_json_file(self, json_path: str) -> Dict[int, Any]:
         """Load JSON file from GCP Storage.
@@ -86,11 +90,34 @@ class GCPStorageManager:
             blob_path (str): Path to the file in the bucket
             
         Returns:
-            int: File size in bytes
+            int: File size in bytes. Returns 0 if the blob doesn't exist or size is None.
         """
         blob = self.bucket.blob(blob_path)
         blob.reload()
-        return blob.size
+        size = blob.size
+        return size if size is not None else 0
+
+    def download_blob_to_bytes(self, blob_path: str) -> bytes:
+        """Download a blob's contents as bytes.
+
+        Args:
+            blob_path: Path to the blob in the bucket
+
+        Returns:
+            The blob's contents as bytes
+        """
+        blob = self.bucket.blob(blob_path)
+        return blob.download_as_bytes()
+
+    def blob_exists(self, blob_path: str) -> bool:
+        """Check if a blob exists in the bucket."""
+        blob = self.bucket.blob(blob_path)
+        return blob.exists()
+
+    def upload_from_string(self, blob_path: str, data: str):
+        """Upload data from a string to a blob."""
+        blob = self.bucket.blob(blob_path)
+        blob.upload_from_string(data)
 
 # Global storage manager instance
-storage_manager = GCPStorageManager(os.getenv('GCP_BUCKET_NAME', 'video-search-system-data')) 
+storage_manager = GCPStorageManager() 

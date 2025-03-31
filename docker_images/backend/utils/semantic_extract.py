@@ -10,7 +10,8 @@ import faiss
 from transformers import AutoTokenizer, AutoModel
 import gc
 from tqdm import tqdm
-from utils.common import PROJECT_ROOT
+import io
+from utils.helpers.gcp_storage_helper.gcp_storage import GCPStorageManager
 
 
 class semantic_extract:
@@ -24,17 +25,21 @@ class semantic_extract:
     def __init__(
             self,
             model = 'sentence-transformers/stsb-xlm-r-multilingual',
-            context_path = os.path.join(PROJECT_ROOT, "dict/captions"),
-            context_vector_path = os.path.join(PROJECT_ROOT, "data/TransNetDatabase/CaptionFeatures/context_vector.npy"),
+            context_path = "dict/captions",
+            context_vector_path = "data/TransNetDatabase/CaptionFeatures/context_vector.npy",
             input_datatype = 'txt',
             output_datatype = 'torch',
     ):
+        # Get singleton instance of GCPStorageManager
+        self.storage_manager = GCPStorageManager()
+        
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.model = AutoModel.from_pretrained(model).to(self.device)
         self.tokenizer = AutoTokenizer.from_pretrained(model)
         self.context_path = context_path
         self.context_vector_path = context_vector_path
-        if not os.path.exists(context_vector_path):
+        
+        if not self.storage_manager.blob_exists(context_vector_path):
             self.raw_data = self.generate_context_embedding(context_path, context_vector_path, output_datatype, input_datatype)
         else:
             self.raw_data = self.generate_raw_data(context_path, input_datatype)
@@ -62,36 +67,36 @@ class semantic_extract:
         input_mask_expanded = attention_mask.unsqueeze(-1).expand(token_embeddings.size()).float()
         return torch.sum(token_embeddings * input_mask_expanded, 1) / torch.clamp(input_mask_expanded.sum(1), min=1e-9)
     
-    @staticmethod
     def generate_raw_data(
+            self,
             context_path,
             type_input:str='txt',
     ):
         raw_data = []
         if type_input=='txt':
-            # context_path is a list of file path
-            if isinstance(context_path, list):
-                paths = glob.glob(context_path +'/*.txt')
-                for path in paths:
-                    with open(path, 'r', encoding='utf-8') as f:
-                        data = f.readlines()
-                        data = [word.strip() for word in data]
-                        raw_data.extend(data)
-            else:
-                # context path is one string
-                with open(context_path, 'r', encoding='utf-8') as f:
-                    raw_data = f.readlines()
-                    raw_data = [word.strip() for word in raw_data]
-        elif type_input=='json': #input type json
-            context_paths = glob.glob(os.path.join(context_path, '*'))
+            # List files in GCP bucket with given prefix
+            data_paths = self.storage_manager.list_files(context_path)
+            data_paths.sort()
+            for path in data_paths:
+                if path.endswith('.txt'):
+                    # Download and read text content from GCP
+                    content = self.storage_manager.download_blob_to_bytes(path).decode('utf-8')
+                    data = content.splitlines()
+                    data = [word.strip() for word in data]
+                    raw_data.extend(data)
+        elif type_input=='json':
+            # List files in GCP bucket with given prefix
+            context_paths = self.storage_manager.list_files(context_path)
             context_paths.sort()
             for cxx_context_path in context_paths:
-                paths = glob.glob(cxx_context_path + '/*.json')
+                # Get all .json files in this directory
+                paths = [p for p in self.storage_manager.list_files(cxx_context_path) if p.endswith('.json')]
                 paths.sort(reverse=False, key=lambda x: int(x[-8:-5]))
                 for path in paths:
-                    with open(path) as f:
-                        data = ["nan" if (x =='' or x==[]) else x for x in json.load(f)]
-                        raw_data += data
+                    # Download and parse JSON from GCP
+                    content = self.storage_manager.download_blob_to_bytes(path).decode('utf-8')
+                    data = ["nan" if (x =='' or x==[]) else x for x in json.loads(content)]
+                    raw_data += data
         else:
             print(f'not support reading {type_input}')
             sys.exit()
@@ -111,20 +116,23 @@ class semantic_extract:
         for i in tqdm(range(0, len(raw_data), chunk_range)):
             context_embedding.append(self.get_embedding(raw_data[i:i+chunk_range]))
         context_embedding = torch.cat(context_embedding)
-
-        if not os.path.exists(os.path.abspath(os.path.join(save_tensor_path, '..'))):
-            os.mkdir(os.path.abspath(os.path.join(save_tensor_path, '..')))
         
         if type_output=='numpy':
             numpy_context_embedding = context_embedding.cpu().numpy()
-            np.save(save_tensor_path, numpy_context_embedding)
+            with io.BytesIO() as buffer:
+                np.save(buffer, numpy_context_embedding)
+                self.storage_manager.upload_from_string(save_tensor_path, buffer.getvalue())
         elif type_output=='torch':
             torch_context_embedding = context_embedding.cpu()
-            torch.save(torch_context_embedding, save_tensor_path)
+            with io.BytesIO() as buffer:
+                torch.save(torch_context_embedding, buffer)
+                self.storage_manager.upload_from_string(save_tensor_path, buffer.getvalue())
         elif type_output=='bin':
             index = faiss.IndexFlatL2(context_embedding.shape[-1])
             print('running save faiss: ')
             for vector in tqdm(context_embedding.cpu().numpy()):
                 index.add(vector.reshape(1, -1))
-            faiss.write_index(index, save_tensor_path)
+            with io.BytesIO() as buffer:
+                faiss.write_index(index, buffer)
+                self.storage_manager.upload_from_string(save_tensor_path, buffer.getvalue())
         return raw_data

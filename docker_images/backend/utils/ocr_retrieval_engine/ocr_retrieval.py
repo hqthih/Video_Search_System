@@ -4,27 +4,25 @@ import pickle
 import numpy as np
 import re
 import scipy
+import io
 script_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.abspath(os.path.join(script_dir, '..'))
 grand_dir = os.path.abspath(os.path.join(parent_dir, '..'))
 sys.path.extend([parent_dir, grand_dir])
 
 from utils.object_retrieval_engine.object_retrieval import load_file
-from utils.common import PROJECT_ROOT
+from utils.helpers.gcp_storage_helper.gcp_storage import GCPStorageManager
 
 
 class ocr_retrieval(load_file):
     def __init__(
             self,
             ocr_context_path='dict/ocr/*',
-            ocr_embed_path=os.path.join(PROJECT_ROOT, 'dict/bin/ocr_bin'),
+            ocr_embed_path='dict/bin/ocr_bin',
     ):
-        if not os.path.exists(os.path.join(PROJECT_ROOT, 'dict/bin')):
-            os.mkdir(os.path.join(PROJECT_ROOT, 'dict/bin'))
+        # Get singleton instance of GCPStorageManager
+        self.storage_manager = GCPStorageManager()
         
-        if not os.path.exists(ocr_embed_path):
-            os.mkdir(ocr_embed_path)
-
         super().__init__(
             clean_data_path={'ocr':ocr_context_path},
             save_tfids_object_path=ocr_embed_path,
@@ -34,9 +32,14 @@ class ocr_retrieval(load_file):
             update=False,
             input_datatype='json'
         )
-        with open(os.path.join(ocr_embed_path, 'tfidf_transform_ocr.pkl'), 'rb') as f:
-            self.tfidf_transform_ocr = pickle.load(f)
-        self.context_sparse_matrix_ocr = scipy.sparse.load_npz(os.path.join(os.path.join(PROJECT_ROOT, ocr_embed_path), f'sparse_context_matrix_ocr.npz'))
+        
+        # Load TF-IDF transformer from GCP Storage
+        tfidf_bytes = self.storage_manager.download_blob_to_bytes(os.path.join(ocr_embed_path, 'tfidf_transform_ocr.pkl'))
+        self.tfidf_transform_ocr = pickle.loads(tfidf_bytes)
+        
+        # Load sparse matrix from GCP Storage
+        sparse_matrix_bytes = self.storage_manager.download_blob_to_bytes(os.path.join(ocr_embed_path, 'sparse_context_matrix_ocr.npz'))
+        self.context_sparse_matrix_ocr = scipy.sparse.load_npz(io.BytesIO(sparse_matrix_bytes))
 
     def __call__(
             self,

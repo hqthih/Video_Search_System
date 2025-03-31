@@ -3,28 +3,27 @@ import faiss
 import pickle
 import numpy as np
 import scipy
+import io
 from ..semantic_extract import semantic_extract
 from ..object_retrieval_engine.object_retrieval import load_file
 from ..combine_utils import merge_searching_results_by_addition
 from utils.common import PROJECT_ROOT
+from utils.helpers.gcp_storage_helper.gcp_storage import GCPStorageManager
 
 
 class speech_retrieval(semantic_extract, load_file):
     def __init__(
             self,
             model = 'sentence-transformers/stsb-xlm-r-multilingual',
-            context_path = os.path.join(PROJECT_ROOT, "dict/audio"),
-            context_vector_path = os.path.join(PROJECT_ROOT, "dict/bin/audio_bin"),
+            context_path = "dict/audio",
+            context_vector_path = "dict/bin/audio_bin",
             input_datatype = 'json',
             output_datatype = 'bin',
             test_mode = False, # Enable to load raw data for debugging mode
             enable_semantic = False,
     ):
-        if not os.path.exists(os.path.join(PROJECT_ROOT, 'dict/bin')):
-            os.mkdir(os.path.join(PROJECT_ROOT, 'dict/bin'))
-        
-        if not os.path.exists(context_vector_path):
-            os.mkdir(context_vector_path)
+        # Get singleton instance of GCPStorageManager
+        self.storage_manager = GCPStorageManager()
 
         self.enable_semantic = enable_semantic
         if enable_semantic:
@@ -36,8 +35,10 @@ class speech_retrieval(semantic_extract, load_file):
                 input_datatype=input_datatype,
                 output_datatype=output_datatype,
             )
-            self.index = faiss.read_index(os.path.join(context_vector_path, 'embed_audio.bin'))
-        elif (not os.path.exists(os.path.join(context_vector_path, f'tfidf_transform_speech.pkl'))) or test_mode:
+            # Load index from GCP Storage
+            index_bytes = self.storage_manager.download_blob_to_bytes(os.path.join(context_vector_path, 'embed_audio.bin'))
+            self.index = faiss.read_index(io.BytesIO(index_bytes))
+        elif (not self.storage_manager.blob_exists(os.path.join(context_vector_path, f'tfidf_transform_speech.pkl'))) or test_mode:
             self.raw_data = semantic_extract.generate_raw_data(context_path, input_datatype)
         else:
             self.raw_data = None
@@ -52,9 +53,14 @@ class speech_retrieval(semantic_extract, load_file):
             ngram_range = (1, 3),
             input_datatype = 'json',
         )
-        with open(os.path.join(context_vector_path, 'tfidf_transform_speech.pkl'), 'rb') as f:
-            self.tfidf_transform = pickle.load(f)
-        self.context_matrix = scipy.sparse.load_npz(os.path.join(context_vector_path, f'sparse_context_matrix_speech.npz'))
+        
+        # Load TF-IDF transformer from GCP Storage
+        tfidf_bytes = self.storage_manager.download_blob_to_bytes(os.path.join(context_vector_path, 'tfidf_transform_speech.pkl'))
+        self.tfidf_transform = pickle.loads(tfidf_bytes)
+        
+        # Load sparse matrix from GCP Storage
+        sparse_matrix_bytes = self.storage_manager.download_blob_to_bytes(os.path.join(context_vector_path, f'sparse_context_matrix_speech.npz'))
+        self.context_matrix = scipy.sparse.load_npz(io.BytesIO(sparse_matrix_bytes))
 
     def __call__(
             self,
@@ -106,13 +112,10 @@ class speech_retrieval(semantic_extract, load_file):
     ):
         vectorize = self.tfidf_transform.transform([query])
         if index is None: 
-            #awesome_cossim_topn(a, b, N, 0.01, use_threads=True, n_jobs=4, return_best_ntop=True)
-            #scores = cosine_similarity(vectorize, self.context_matrix[transform_type])[0]
             scores = vectorize.dot(self.context_matrix.T).toarray()[0]
             sort_index = np.argsort(scores)[::-1][:k]
             scores = scores[sort_index]
         else:
-            #scores = cosine_similarity(vectorize, self.context_matrix[transform_type][index,:])[0]
             scores = vectorize.dot(self.context_matrix[index,:].T).toarray()[0]
             sort_index = np.argsort(scores)[::-1][:k]
             scores = scores[sort_index]

@@ -1,29 +1,23 @@
 import os
-# import glob
-# import torch
-# import numpy as np
-# from typing import List
-# import torch.nn.functional as F
 import faiss
-# from transformers import AutoTokenizer, AutoModel
+import io
+import numpy as np
+import tempfile
 from ..semantic_extract import semantic_extract
-from utils.common import PROJECT_ROOT
+from utils.helpers.gcp_storage_helper.gcp_storage import GCPStorageManager
 
 
 class tag_retrieval(semantic_extract):
     def __init__(
             self,
             model = 'sentence-transformers/stsb-xlm-r-multilingual',
-            context_path = os.path.join(PROJECT_ROOT, "dict/tag/tag_corpus.txt"),
-            context_vector_path = os.path.join(PROJECT_ROOT, "dict/bin/tag_bin/tag_embedding.bin"),
+            context_path = "dict/tag/tag_corpus.txt",
+            context_vector_path = "dict/bin/tag_bin/tag_embedding.bin",
             input_datatype='txt',
             output_datatype = 'bin',
     ):
-        if not os.path.exists(os.path.join(PROJECT_ROOT, 'dict/bin')):
-            os.mkdir(os.path.join(PROJECT_ROOT, 'dict/bin'))
-        
-        if not os.path.exists(os.path.join(PROJECT_ROOT, "dict/bin/tag_bin")):
-            os.mkdir(os.path.join(PROJECT_ROOT, "dict/bin/tag_bin"))
+        # Get singleton instance of GCPStorageManager
+        self.storage_manager = GCPStorageManager()
 
         super().__init__(
             model,
@@ -32,7 +26,22 @@ class tag_retrieval(semantic_extract):
             input_datatype,
             output_datatype,
         )
-        self.index = faiss.read_index(context_vector_path)
+
+        # Download index bytes from GCP Storage
+        index_bytes = self.storage_manager.download_blob_to_bytes(context_vector_path)
+        
+        # Create a temporary file to load the index
+        with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+            temp_file.write(index_bytes)
+            temp_file_path = temp_file.name
+        
+        try:
+            # Load the index from the temporary file
+            self.index = faiss.read_index(temp_file_path)
+        finally:
+            # Clean up the temporary file
+            if os.path.exists(temp_file_path):
+                os.remove(temp_file_path)
 
     def __call__(
             self,
