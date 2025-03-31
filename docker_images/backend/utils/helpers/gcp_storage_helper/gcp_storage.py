@@ -13,7 +13,19 @@ class GCPStorageManager:
         self.bucket_name = bucket_name
         self.client = storage.Client()
         self.bucket = self.client.bucket(bucket_name)
+    
+    def load_json_file(self, json_path: str) -> Dict[int, Any]:
+        """Load JSON file from GCP Storage.
         
+        Args:
+            json_path (str): Path to the JSON file in the bucket
+            
+        Returns:
+            Dict[str, Any]: Loaded JSON data
+        """
+        js = self.load_json_with_cache(json_path)
+        return {int(k):v for k,v in js.items()}
+
     def load_json(self, blob_path: str) -> Dict[str, Any]:
         """Load JSON file from GCP Storage.
         

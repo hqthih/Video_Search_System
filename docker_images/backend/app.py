@@ -11,11 +11,13 @@ from utils.context_encoding import VisualEncoding
 from utils.semantic_embed.tag_retrieval import tag_retrieval
 from utils.combine_utils import merge_searching_results_by_addition
 from utils.search_utils import group_result_by_video, search_by_filter
-from utils.load_metadata_from_gcp_storage import (
-    load_map_keyframes,
-    load_video_id2img_id
-)
+from utils.helpers.gcp_storage_helper.gcp_storage import GCPStorageManager
 
+
+
+# Initialize GCP Storage Manager
+storage_manager = GCPStorageManager(bucket_name='video-search-keyframes-storage-hao')
+# Initialize other components
 json_path = 'dict/id2img_fps.json'
 audio_json_path = 'dict/audio_id2img_id.json'
 scene_path = 'dict/scene_id2info.json'
@@ -23,19 +25,19 @@ video_division_path = 'dict/video_division_tag.json'
 img2audio_json_path = 'dict/img_id2audio_id.json'
 
 VisualEncoder = VisualEncoding()
-CosineFaiss = MyFaiss(json_path, audio_json_path, img2audio_json_path)
+CosineFaiss = MyFaiss(storage_manager,json_path, audio_json_path, img2audio_json_path)
 # CosineFaiss = MyFaiss(bin_clip_file, bin_clipv2_file, json_path, audio_json_path, img2audio_json_path)
 
 TagRecommendation = tag_retrieval()
 DictImagePath = CosineFaiss.id2img_fps
 TotalIndexList = np.array(list(range(len(DictImagePath)))).astype('int64')
 
-with open(scene_path, 'r') as f:
-  Sceneid2info = json.load(f)
 
-# Replace local file loading with GCP Storage
-KeyframesMapper  = load_map_keyframes()
-Videoid2imgid = load_video_id2img_id()
+
+# Load metadata from GCP Storage
+Sceneid2info = storage_manager.load_json_file('dict/scene_id2info.json')
+KeyframesMapper = storage_manager.load_json_file('dict/map_keyframes.json')
+Videoid2imgid = storage_manager.load_json_file('dict/video_id2img_id.json')
 
 with open(video_division_path, 'r') as f:
   VideoDivision = json.load(f)
