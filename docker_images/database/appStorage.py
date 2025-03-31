@@ -3,7 +3,6 @@ import json
 from flask_cors import CORS
 from flask_socketio import emit, SocketIO
 from flask import Flask, jsonify, request
-from utils.load_metadata_from_gcp_storage import load_map_keyframes
 
 app = Flask(__name__, template_folder="templates")
 CORS(app)
@@ -18,8 +17,8 @@ with open(json_path, "r") as f:
     DictImagePath = json.load(f)
     DictImagePath = {int(k): v for k, v in DictImagePath.items()}
 
-# Replace local file loading with GCP Storage
-KeyframesMapper  = load_map_keyframes()
+with open("dict/map_keyframes.json", "r") as f:
+    KeyframesMapper = json.load(f)
 
 if os.path.exists(f"{back_up_folder}/answer.json"):
     with open(f"{back_up_folder}/answer.json", "r") as f:
@@ -371,5 +370,5 @@ print("Finish define route api")
 # Running app
 if __name__ == "__main__":
     print("before run main")
-    socketio.run(app, debug=True)
+    socketio.run(app, debug=True, port=8081)
     print("after run main")
