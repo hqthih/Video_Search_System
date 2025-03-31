@@ -1,0 +1,44 @@
+// Video metadata table
+Table videos {
+  video_id varchar(50) [pk]
+  author varchar(255)
+  channel_id varchar(50)
+  channel_url varchar(255)
+  description text
+  length int
+  publish_date date
+  thumbnail_url varchar(255)
+  title varchar(255)
+  watch_url varchar(255)
+}
+
+// Shot information table
+Table shots {
+  shot_id int [pk, increment]
+  video_id varchar(50) [ref: > videos.video_id]
+  shot_start int
+  shot_end int
+  shot_start_time float
+  shot_end_time float
+}
+
+// Keyframes table
+Table keyframes {
+  keyframe_id int [pk, increment]
+  shot_id int [ref: > shots.shot_id]
+  keyframe_path varchar(255)
+  keyframe_idx int
+}
+
+// Indexes
+TableGroup VideoAnalytics {
+  videos
+  shots
+  keyframes
+}
+
+// Relationships explained:
+// - Each video can have multiple shots (one-to-many)
+// - Each shot can have multiple keyframes (one-to-many)
+// - Keyframes belong to a specific shot
+// - Shots belong to a specific video 
