@@ -3,46 +3,25 @@ import json
 from flask_cors import CORS
 from flask_socketio import emit, SocketIO
 from flask import Flask, jsonify, request
+from helpers.gcp_storage_helper.gcp_storage import GCPStorageManager
 
 app = Flask(__name__, template_folder="templates")
 CORS(app)
 socketio = SocketIO(app, async_mode='eventlet', cors_allowed_origins="*")
 
+# Initialize GCP Storage Manager
+storage_manager = GCPStorageManager()
+
 ###################### Initialize dict ########################
-json_path = "dict/id2img_fps.json"
 back_up_folder = "back_up"
-if not os.path.exists(back_up_folder):
-    os.mkdir(back_up_folder)
-with open(json_path, "r") as f:
-    DictImagePath = json.load(f)
-    DictImagePath = {int(k): v for k, v in DictImagePath.items()}
+DictImagePath= storage_manager.load_json_file_int_key("dict/id2img_fps.json")
 
-with open("dict/map_keyframes.json", "r") as f:
-    KeyframesMapper = json.load(f)
+KeyframesMapper = storage_manager.load_json_with_cache("dict/map_keyframes.json")
 
-if os.path.exists(f"{back_up_folder}/answer.json"):
-    with open(f"{back_up_folder}/answer.json", "r") as f:
-        AnswerDict = json.load(f)
-else:
-    AnswerDict = dict()
-
-if os.path.exists(f"{back_up_folder}/user.json"):
-    with open(f"{back_up_folder}/user.json", "r") as f:
-        UserDict = json.load(f)
-else:
-    UserDict = dict()
-
-if os.path.exists(f"{back_up_folder}/reorder_status.json"):
-    with open(f"{back_up_folder}/reorder_status.json", "r") as f:
-        ReorderStatus = json.load(f)
-else:
-    ReorderStatus = dict()
-
-if os.path.exists(f"{back_up_folder}/answer_ignore.json"):
-    with open(f"{back_up_folder}/answer_ignore.json", "r") as f:
-        AnswerIgnoreDict = json.load(f)
-else:
-    AnswerIgnoreDict = dict()
+AnswerDict = dict()
+UserDict = dict()
+ReorderStatus = dict()
+AnswerIgnoreDict = dict()
 
 print("Finish loading data")
 
@@ -50,20 +29,16 @@ print("Finish loading data")
 
 ####################### Helper Utils ##########################
 def store_answer():
-    with open(f"{back_up_folder}/answer.json", "w") as f:
-        json.dump(AnswerDict, f)
+    storage_manager.upload_from_string( f"{back_up_folder}/answer.json", json.dumps(AnswerDict))
 
 def store_user():
-    with open(f"{back_up_folder}/user.json", "w") as f:
-        json.dump(UserDict, f)
+    storage_manager.upload_from_string( f"{back_up_folder}/user.json", json.dumps(UserDict))
 
 def store_status():
-    with open(f"{back_up_folder}/reorder_status.json", "w") as f:
-        json.dump(ReorderStatus, f)
+    storage_manager.upload_from_string( f"{back_up_folder}/reorder_status.json", json.dumps(ReorderStatus))
 
 def store_ignore():
-    with open(f"{back_up_folder}/answer_ignore.json", "w") as f:
-        json.dump(AnswerIgnoreDict, f)
+    storage_manager.upload_from_string( f"{back_up_folder}/answer_ignore.json", json.dumps(AnswerIgnoreDict))
 
 def add_submit(ques_name, ques_idx):
     ques_idx = int(ques_idx)

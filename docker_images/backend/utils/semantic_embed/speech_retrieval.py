@@ -7,7 +7,6 @@ import io
 from ..semantic_extract import semantic_extract
 from ..object_retrieval_engine.object_retrieval import load_file
 from ..combine_utils import merge_searching_results_by_addition
-from utils.common import PROJECT_ROOT
 from utils.helpers.gcp_storage_helper.gcp_storage import GCPStorageManager
 
 

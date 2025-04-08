@@ -119,5 +119,3 @@ class GCPStorageManager:
         blob = self.bucket.blob(blob_path)
         blob.upload_from_string(data)
 
-# Global storage manager instance
-storage_manager = GCPStorageManager() 

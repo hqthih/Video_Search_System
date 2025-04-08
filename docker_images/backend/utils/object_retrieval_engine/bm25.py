@@ -8,8 +8,6 @@ import faiss
 import pandas as pd
 import scipy
 
-from utils.common import PROJECT_ROOT
-
 
 class load_file:
     def __init__(
@@ -23,7 +21,7 @@ class load_file:
         for data_type in ['bbox', 'color', 'class', 'tag']:
             if clean_data_path[data_type] is not None:
                 if (not os.path.exists(os.path.join(save_tfids_object_path, f'bm25_transform_{data_type}.pkl'))) or update :
-                    clean_data_paths = os.path.join(PROJECT_ROOT, clean_data_path[data_type])
+                    clean_data_paths =  clean_data_path[data_type]
                     data_paths = glob.glob(clean_data_paths)
                     data_paths.sort(reverse=False, key=lambda s:int(s[-5:-4]))
                     context = []
@@ -56,7 +54,7 @@ class tf_idf_retrieval(load_file):
                 'tag':'dict/contexts/tags_encoded/*.txt',
             },
             update:bool=False,
-            save_tfids_object_path = os.path.join(PROJECT_ROOT, 'dict/contexts_bin'),
+            save_tfids_object_path = 'dict/contexts_bin',
             save_corpus_path = 'dict/tag/tag_corpus.txt'
     ):
         super().__init__(

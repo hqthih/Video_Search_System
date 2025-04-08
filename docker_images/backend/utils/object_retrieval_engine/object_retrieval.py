@@ -10,7 +10,7 @@ import io
 from sklearn.feature_extraction.text import TfidfVectorizer
 from utils.helpers.gcp_storage_helper.gcp_storage import GCPStorageManager
 from utils.combine_utils import merge_searching_results_by_addition
-from utils.common import PROJECT_ROOT
+
 
 class load_file:
     """A class for loading and preprocessing text data and creating TF-IDF matrices.
@@ -50,7 +50,7 @@ class load_file:
             if not self.storage_manager.blob_exists(os.path.join(save_tfids_object_path, f'tfidf_transform_{data_type}.pkl')):
                 if context_data is None:
                     # Load context data from files if not provided directly
-                    clean_data_paths = os.path.join(PROJECT_ROOT, clean_data_path[data_type])
+                    clean_data_paths =  clean_data_path[data_type]
                     context = self.load_context(clean_data_paths, input_datatype)
                     print(data_type)
                     print(context[0][:100])

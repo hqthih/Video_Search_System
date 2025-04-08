@@ -30,9 +30,9 @@ class MyFaiss:
         self.asr_retrieval = speech_retrieval()
 
         self.storage_manager = gcp_manager
-        self.id2img_fps = self.storage_manager.load_json_file(json_path)
-        self.audio_id2img_id = self.storage_manager.load_json_file(audio_json_path)
-        self.img_id2audio_id = self.storage_manager.load_json_file(img2audio_json_path)
+        self.id2img_fps = self.storage_manager.load_json_file_int_key(json_path)
+        self.audio_id2img_id = self.storage_manager.load_json_file_int_key(audio_json_path)
+        self.img_id2audio_id = self.storage_manager.load_json_file_int_key(img2audio_json_path)
         self.translater = Translation()
         self.__device = "cuda" if torch.cuda.is_available() else "cpu"
         self.clip_model, _ = clip.load("ViT-B/16", device=self.__device)
