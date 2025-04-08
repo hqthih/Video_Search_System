@@ -6,7 +6,7 @@ from flask import Flask, jsonify, request
 from helpers.gcp_storage_helper.gcp_storage import GCPStorageManager
 
 app = Flask(__name__, template_folder="templates")
-CORS(app)
+CORS(app, resources={r"/*": {"origins": "*"}})
 socketio = SocketIO(app, async_mode='eventlet', cors_allowed_origins="*")
 
 # Initialize GCP Storage Manager

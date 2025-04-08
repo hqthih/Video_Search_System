@@ -1,5 +1,5 @@
-# Use the official Node.js image as the base image
-FROM node:14-alpine
+# Use a more recent Node.js LTS version
+FROM node:18-alpine
 
 # Set the working directory
 WORKDIR /app
@@ -8,12 +8,12 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install dependencies
-RUN npm install
+RUN npm install --legacy-peer-deps
 
-# Install dependencies
-RUN npm install next react react-dom
-RUN npm install @google-cloud/storage --legacy-peer-deps
-RUN npm install date-fns
+# # Install dependencies
+# RUN npm install next react react-dom
+# RUN npm install @google-cloud/storage --legacy-peer-deps
+# RUN npm install date-fns
 
 # Copy the rest of the application code
 COPY . .
