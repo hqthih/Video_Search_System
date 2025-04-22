@@ -1,9 +1,14 @@
 import os
 import json
+import logging
 from flask_cors import CORS
 from flask_socketio import emit, SocketIO
 from flask import Flask, jsonify, request
 from helpers.gcp_storage_helper.gcp_storage import GCPStorageManager
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 app = Flask(__name__, template_folder="templates")
 CORS(app, resources={r"/*": {"origins": "*"}})
@@ -23,7 +28,7 @@ UserDict = dict()
 ReorderStatus = dict()
 AnswerIgnoreDict = dict()
 
-print("Finish loading data")
+logger.info("Finish loading data")
 
 ###############################################################
 
@@ -83,7 +88,7 @@ def clear_submit_helper(ques_name, ques_idx):
         if ques_idx in AnswerDict[ques_name]:
             AnswerDict[ques_name].remove(ques_idx)
     else:
-        print(f"Question name: {ques_name} not exist")
+        logger.warning(f"Question name: {ques_name} not exist")
     store_answer()
 
 def clear_ignore_helper(ques_name, ques_idx):
@@ -91,7 +96,7 @@ def clear_ignore_helper(ques_name, ques_idx):
         if ques_idx in AnswerIgnoreDict[ques_name]:
             AnswerIgnoreDict[ques_name].remove(ques_idx)
     else:
-        print(f"Question name: {ques_name} not exist")
+        logger.warning(f"Question name: {ques_name} not exist")
     store_ignore()
 
 def index2info(lst_idxs):
@@ -133,13 +138,13 @@ def check_owned_all(username):
         else:
             checked_ques.append({"question": ques, "owned": False})
 
-    print(f"res: {checked_ques}")
+    logger.info(f"res: {checked_ques}")
     return checked_ques
 
 def check_ignore():
     return list(AnswerIgnoreDict.keys())
 
-print("Finish define function")
+logger.info("Finish define function")
 
 ######################## SocketIO ##############################
 ##################### Submit ##################################
@@ -156,7 +161,7 @@ def submit(data):
         None
     """
     
-    print("submit")
+    logger.info("submit")
     ques_name = data["questionName"]
     ques_idx = int(data["idx"])
     user = data["user"]
@@ -177,7 +182,7 @@ def clear_submit(data):
         None
     """
     
-    print("clear submit")
+    logger.info("clear submit")
     ques_name = data["questionName"]
     ques_idx = int(data["idx"])
     clear_submit_helper(ques_name, ques_idx)
@@ -198,7 +203,7 @@ def ignore(data):
         "ignore": Broadcasts the result containing the question name and the updated ignore data.
     """
 
-    print("ignore")
+    logger.info("ignore")
     ques_name = data["questionName"]
     ques_idx = data["idx"]
     add_ignore(ques_name, ques_idx, data["autoIgnore"])
@@ -207,7 +212,7 @@ def ignore(data):
 
 @socketio.on("clearignore")
 def clear_ignore(data):
-    print("clear ignore")
+    logger.info("clear ignore")
     ques_name = data["questionName"]
     ques_idx = data["idx"]
     clear_ignore_helper(ques_name, ques_idx)
@@ -233,7 +238,7 @@ def reorder(data):
         None
     """
 
-    print("re order")
+    logger.info("re order")
     ques_name = data["questionName"]
     lst_idxs = data["data"]["lst_idxs"]
     if AnswerDict.get(ques_name, False):
@@ -267,7 +272,7 @@ def active_reorder(data):
             - "is_accepted" (bool): A flag indicating if the reorder request was accepted.
     """
 
-    print("active reorder")
+    logger.info("active reorder")
     ques_name = data["questionName"]
     user = data["user"]
     is_admin = data["isAdmin"]
@@ -278,7 +283,7 @@ def active_reorder(data):
     }
     # If is_admin: pass
     if ReorderStatus[ques_name]["status"] and not is_admin:
-        print("Reorder an active question error !!!!")
+        logger.error("Reorder an active question error !!!!")
         # emit's first argument must be the same name as that of the channel on client-side
         emit("activereorder", status, broadcast=True)
     else:
@@ -300,7 +305,7 @@ def view_submitted(data):
         will include the question name and associated data. Otherwise, an empty dictionary is emitted.
     """
 
-    print("view submitted")
+    logger.info("view submitted")
     ques_name = data["questionName"]
     if AnswerDict.get(ques_name, False):
         result = {"questionName": ques_name, "data": index2info(AnswerDict[ques_name])}
@@ -341,9 +346,13 @@ def get_ignore():
         result = {"questionName": ques_name, "data": []}
     return jsonify(result)
 
-print("Finish define route api")
+@app.route("/db_health", methods=["GET"], strict_slashes=False)
+def health_check():
+    return jsonify({"status": "healthy"}), 200
+
+logger.info("Finish define route api")
 # Running app
 if __name__ == "__main__":
-    print("before run main")
-    socketio.run(app, debug=True, port=8081)
-    print("after run main")
+    logger.info("before run main")
+    socketio.run(app, debug=False, port=8082, host='0.0.0.0')
+    logger.info("after run main")

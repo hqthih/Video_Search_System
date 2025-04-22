@@ -38,7 +38,7 @@ class MyFaiss:
         self.clip_model, _ = clip.load("ViT-B/16", device=self.__device)
         self.clipv2_model, _, _ = open_clip.create_model_and_transforms('ViT-L-14', device=self.__device, pretrained='datacomp_xl_s13b_b90k')
         self.clipv2_tokenizer = open_clip.get_tokenizer('ViT-L-14')
-        connections.connect("default", host="localhost", port="19530")
+        connections.connect("default", host="10.128.0.2", port="19530")
         # Drop the existing collection
         self.collection_name = "clip"
         # Create a collection

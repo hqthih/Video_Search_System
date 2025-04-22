@@ -1,3 +1,4 @@
+import logging
 import copy
 import json
 import numpy as np
@@ -11,7 +12,8 @@ from utils.combine_utils import merge_searching_results_by_addition
 from utils.search_utils import group_result_by_video, search_by_filter
 from utils.helpers.gcp_storage_helper.gcp_storage import GCPStorageManager
 
-
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # Initialize GCP Storage Manager
 storage_manager = GCPStorageManager()
@@ -67,7 +69,22 @@ def get_related_ignore(ignore_index):
 
 # Run Flask app
 app = Flask(__name__, template_folder='templates')
-CORS(app, resources={r"/*": {"origins": "*"}})
+CORS(app, resources={
+    r"/*": {
+        "origins": "*",
+        "methods": ["GET", "POST", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization", "X-Requested-With"],
+        "supports_credentials": True,
+        "expose_headers": ["Content-Range", "X-Content-Range"]
+    }
+})
+
+@app.after_request
+def after_request(response):
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-Requested-With')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
+    return response
 
 @app.route('/data')
 def index():
@@ -81,7 +98,7 @@ def index():
 
 @app.route('/imgsearch')
 def image_search():
-    print("image search")
+    logging.info("image search")
     k = int(request.args.get('k'))
     id_query = int(request.args.get('imgid'))
     lst_scores, list_ids, _, list_image_paths = CosineFaiss.image_search(id_query, k=k)
@@ -92,7 +109,7 @@ def image_search():
 
 @app.route('/textsearch', methods=['POST'], strict_slashes=False)
 def text_search():
-    print("text search")
+    logging.info("text search")
     data = request.json
 
     search_space_index = int(data['search_space'])
@@ -106,14 +123,14 @@ def text_search():
     if data['filter']:
       index = np.array(data['id']).astype('int64')
       k = min(k, len(index))
-      print("using index")
+      logging.info("using index")
 
     keep_index = None
     ignore_index = None
     if data['ignore']:
       ignore_index = get_related_ignore(np.array(data['ignore_idxs']).astype('int64'))
       keep_index = np.delete(TotalIndexList, ignore_index)
-      print("using ignore")
+      logging.info("using ignore")
 
     if keep_index is not None:
       if index is not None:
@@ -135,7 +152,7 @@ def text_search():
        model_type = 'clipv2'
 
     if data['filtervideo'] != 0:
-      print('filter video')
+      logging.info('filter video')
       mode = data['filtervideo']
       prev_result = data['videos']
       data = search_by_filter(prev_result, text_query, k, mode, model_type, range_filter, ignore_index, keep_index, Sceneid2info, DictImagePath, CosineFaiss, KeyframesMapper)
@@ -155,7 +172,7 @@ def text_search():
 
 @app.route('/panel', methods=['POST'], strict_slashes=False)
 def panel():
-    print("panel search")
+    logging.info("panel search")
     search_items = request.json
     k = int(search_items['k'])
     search_space_index = int(search_items['search_space'])
@@ -169,7 +186,7 @@ def panel():
     if search_items['ignore']:
       ignore_index = get_related_ignore(np.array(search_items['ignore_idxs']).astype('int64'))
       keep_index = np.delete(TotalIndexList, ignore_index)
-      print("using ignore")
+      logging.info("using ignore")
 
     if keep_index is not None:
       if index is not None:
@@ -205,7 +222,7 @@ def panel():
 
 @app.route('/getrec', methods=['POST'], strict_slashes=False)
 def getrec():
-    print("get tag recommendation")
+    logging.info("get tag recommendation")
     k = 50
     text_query = request.json
     tag_outputs = TagRecommendation(text_query, k)
@@ -213,7 +230,7 @@ def getrec():
 
 @app.route('/relatedimg')
 def related_img():
-    print("related image")
+    logging.info("related image")
     id_query = int(request.args.get('imgid'))
     image_info = DictImagePath[id_query]
     image_path = image_info['image_path']
@@ -231,7 +248,7 @@ def related_img():
 
 @app.route('/getvideoshot')
 def get_video_shot():
-    print("get video shot")
+    logging.info("get video shot")
 
     if request.args.get('imgid') == 'undefined':
       return jsonify(dict())
@@ -286,6 +303,12 @@ def translate():
   text_query_translated = CosineFaiss.translater(text_query)
   return jsonify(text_query_translated)
 
+@app.route('/health', methods=['GET'], strict_slashes=False)
+def health_check():
+    return jsonify({"status": "healthy"}), 200
+
 # Running app
 if __name__ == '__main__':
-    app.run(debug=True)
+    logging.info("Starting Flask application")
+    app.run(host='0.0.0.0', port=5000)
+    logging.info("Flask application stopped")

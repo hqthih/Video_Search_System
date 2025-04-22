@@ -6,7 +6,7 @@ import LoadingIcon from "../components/LoadingIcon.jsx";
 import ImageListVideo from "../components/ImageListVideo.jsx";
 import Panel from "../components/Panel.jsx";
 import Tabs from "../components/Tabs.jsx";
-import { web_url, socket_url, server, session } from "../helper/web_url.js";
+import { web_url, socket_url, server, session, socketConfig } from "../helper/web_url.js";
 import VideoWrapper from "../components/VideoWrapper.jsx";
 import FullScreen from "../components/FullScreen";
 import Questions from "../components/Questions.jsx";
@@ -23,12 +23,7 @@ let currentK;
 let autoFetchData;
 const VIDEO_PER_PAGE = 7;
 const io = require("socket.io-client");
-const socket = io(socket_url, {
-  withCredentials: true,
-  extraHeaders: {
-    "ngrok-skip-browser-warning": "69420",
-  },
-});
+const socket = io(socket_url, socketConfig);
 
 function index() {
   const [videos, setVideos] = useState([]);
