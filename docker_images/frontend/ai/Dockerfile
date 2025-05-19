@@ -11,9 +11,9 @@ COPY package*.json ./
 RUN npm install --legacy-peer-deps
 
 # # Install dependencies
-# RUN npm install next react react-dom
-# RUN npm install @google-cloud/storage --legacy-peer-deps
-# RUN npm install date-fns
+RUN npm install next react react-dom
+RUN npm install @google-cloud/storage --legacy-peer-deps
+RUN npm install date-fns --legacy-peer-deps
 
 # Copy the rest of the application code
 COPY . .

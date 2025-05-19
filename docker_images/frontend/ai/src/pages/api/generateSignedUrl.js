@@ -2,7 +2,7 @@ import { Storage } from '@google-cloud/storage';
 import { addMinutes } from 'date-fns';
 
 const storage = new Storage();
-const bucketName = 'video-search-keyframes-storage-hao';
+const bucketName = process.env.GCP_BUCKET_NAME || 'video-search-keyframes-storage';
 
 export default async function handler(req, res) {
   const { fileName } = req.query;
